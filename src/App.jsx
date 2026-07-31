@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 import MovieCard from "./MovieCard";
 import "./App.css";
@@ -10,26 +10,36 @@ function App() {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false); 
   const [filter, setFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("title");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Load watchlist from localStorage on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("movieWatchlist");
-      if (saved) {
-        setWatchlist(JSON.parse(saved));
-      }
-    } catch (err) {
-      console.error("Failed to load watchlist:", err);
+  try {
+    const saved = localStorage.getItem("movieWatchlist");
+
+    if (saved) {
+      setWatchlist(JSON.parse(saved));
     }
-  }, []);
+  } catch (err) {
+    console.error("Failed to load watchlist:", err);
+  } finally {
+    setIsLoaded(true);
+  }
+}, []);
 
   // Save watchlist to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("myWatchlist", JSON.stringify(watchlist));
-  }, [watchlist]);
+  if (!isLoaded) return;
+
+  localStorage.setItem(
+    "movieWatchlist",
+    JSON.stringify(watchlist)
+  );
+}, [watchlist, isLoaded]);
 
   // Search movies from TMDB API with debounce
   useEffect(() => {
@@ -42,7 +52,8 @@ function App() {
     const timerId = setTimeout(() => {
       fetchMovies(query);
     }, 500);
-  }, []);
+    return () => clearTimeout(timerId);
+  }, [query]);
 
   async function fetchMovies(searchQuery) {
     try {
@@ -63,35 +74,73 @@ function App() {
     }
   }
 
-  function addToWatchlist(movie) {
-    const newMovie = {
-      id: movie.id,
-      title: movie.title,
-      poster_path: movie.poster_path,
-      release_date: movie.release_date,
-      overview: movie.overview,
-      vote_average: movie.vote_average,
-      watched: false,
-    };
-    setWatchlist([...watchlist, newMovie]);
-  }
+ function addToWatchlist(movie) {
+  // Don't add duplicates
+  if (watchlist.some((m) => m.id === movie.id)) return;
 
-  function removeFromWatchlist(movieId) {
-    setWatchlist(watchlist.filter((m) => m.id !== movieId));
-  }
+  const newMovie = {
+    id: movie.id,
+    title: movie.title,
+    poster_path: movie.poster_path,
+    release_date: movie.release_date,
+    overview: movie.overview,
+    vote_average: movie.vote_average,
+    watched: false,
+  };
+
+  setWatchlist((prev) => [...prev, newMovie]);
+}
+
+ function removeFromWatchlist(movieId) {
+  const confirmed = window.confirm(
+    "Remove this movie from your watchlist?"
+  );
+
+  if (!confirmed) return;
+
+  setWatchlist((prev) =>
+    prev.filter((m) => m.id !== movieId)
+  );
+}
 
   function toggleWatched(movieId) {
-    const updated = watchlist.map((m) =>
-      m.id === movieId ? { ...m, watched: !m.watched } : m
-    );
-    setWatchlist(updated);
-    console.log("Toggled movie. Current list:", watchlist);
-  }
+  const updated = watchlist.map((m) =>
+    m.id === movieId ? { ...m, watched: !m.watched } : m
+  );
 
-  const filteredWatchlist = watchlist.filter((m) => {
-    if (filter === "watched") return !m.watched;
-    if (filter === "unwatched") return m.watched;
+  setWatchlist(updated);
+}
+
+const filteredWatchlist = watchlist
+  .filter((m) => {
+    if (filter === "watched") return m.watched;
+    if (filter === "unwatched") return !m.watched;
     return true;
+  })
+  .sort((a, b) => {
+    if (sortBy === "title") {
+      return a.title.localeCompare(b.title);
+    }
+
+    if (sortBy === "rating") {
+      return b.vote_average - a.vote_average;
+    }
+
+    if (sortBy === "newest") {
+      return (
+        new Date(b.release_date) -
+        new Date(a.release_date)
+      );
+    }
+
+    if (sortBy === "oldest") {
+      return (
+        new Date(a.release_date) -
+        new Date(b.release_date)
+      );
+    }
+
+    return 0;
   });
 
   return (
@@ -114,70 +163,107 @@ function App() {
             />
           </div>
 
-          {loading && <p className="status-message">Searching...</p>}
+          {loading && (
+            <div className="loading">
+              <div className="spinner"></div>
+              <p>Searching...</p>
+            </div>
+          )}
           {error && <p className="error-message">Error: {error}</p>}
+
+          {!loading &&
+             query &&
+             searchResults.length === 0 &&
+             !error && (
+               <p className="status-message">
+                  No movies found.
+               </p>
+)}
 
           <div className="movie-grid">
             {searchResults.map((movie) => (
-              <MovieCard
-                key={movie.id}
-                movie={movie}
-                actionLabel="+ Add to Watchlist"
-                onAction={() => addToWatchlist(movie)}
-              />
+        <MovieCard
+          key={movie.id}
+          movie={movie}
+          actionLabel={
+             watchlist.some((m) => m.id === movie.id)
+               ? "✓ Added"
+              : "+ Add to Watchlist"
+      }
+       disabled={watchlist.some((m) => m.id === movie.id)}
+       onAction={() => addToWatchlist(movie)}
+/>
             ))}
           </div>
         </section>
 
-        {/* Watchlist Section */}
-        <section className="watchlist-section">
-          <div className="watchlist-header">
-            <h2>
-              My Watchlist{" "}
-              <span className="count">({filteredWatchlist.length}</span>
-            </h2>
-            <div className="filter-buttons">
-              <button
-                className={filter === "all" ? "active" : ""}
-                onClick={() => setFilter("all")}
-              >
-                All
-              </button>
-              <button
-                className={filter === "watched" ? "active" : ""}
-                onClick={() => setFilter("watched")}
-              >
-                Watched
-              </button>
-              <button
-                className={filter === "unwatched" ? "active" : ""}
-                onClick={() => setFilter("unwatched")}
-              >
-                Unwatched
-              </button>
-            </div>
-          </div>
+       {/* Watchlist Section */}
+<section className="watchlist-section">
+  <div className="watchlist-header">
+    <h2>
+      My Watchlist{" "}
+      <span className="count">({filteredWatchlist.length})</span>
+    </h2>
 
-          {filteredWatchlist.length === 0 ? (
-            <p className="empty-message">
-              {watchlist.length === 0
-                ? "Your watchlist is empty. Search for movies to add!"
-                : "No movies match this filter."}
-            </p>
-          ) : (
-            <div className="movie-grid">
-              {filteredWatchlist.map((movie) => (
-                <MovieCard
-                  key={movie.id}
-                  movie={movie}
-                  isWatchlist={true}
-                  onToggleWatched={() => toggleWatched(movie.id)}
-                  onRemove={() => removeFromWatchlist(movie.id)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+    <div className="filter-buttons">
+      <button
+        className={filter === "all" ? "active" : ""}
+        onClick={() => setFilter("all")}
+      >
+        All
+      </button>
+
+      <button
+        className={filter === "watched" ? "active" : ""}
+        onClick={() => setFilter("watched")}
+      >
+        Watched
+      </button>
+
+      <button
+        className={filter === "unwatched" ? "active" : ""}
+        onClick={() => setFilter("unwatched")}
+      >
+        Unwatched
+      </button>
+    </div>
+
+    <div className="sort-section">
+      <label htmlFor="sort">Sort By: </label>
+
+      <select
+        id="sort"
+        value={sortBy}
+        onChange={(e) => setSortBy(e.target.value)}
+      >
+        <option value="title">Title (A–Z)</option>
+        <option value="rating">Highest Rating</option>
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+      </select>
+    </div>
+  </div>
+
+  {filteredWatchlist.length === 0 ? (
+    <p className="empty-message">
+      {watchlist.length === 0
+        ? "Your watchlist is empty. Search for movies to add!"
+        : "No movies match this filter."}
+    </p>
+  ) : (
+    <div className="movie-grid">
+      {filteredWatchlist.map((movie) => (
+        <MovieCard
+          key={movie.id}
+          movie={movie}
+          isWatchlist={true}
+          onToggleWatched={() => toggleWatched(movie.id)}
+          onRemove={() => removeFromWatchlist(movie.id)}
+        />
+      ))}
+    </div>
+  )}
+</section>
       </main>
 
       <footer className="app-footer">

@@ -6,6 +6,7 @@ function MovieCard({
   movie,
   actionLabel,
   onAction,
+  disabled,
   isWatchlist,
   onToggleWatched,
   onRemove,
@@ -50,9 +51,13 @@ function MovieCard({
         <div className="card-actions">
           {/* Search result card -- show "Add to Watchlist" button */}
           {onAction && (
-            <button className="btn btn-add" onClick={onAction}>
-              {actionLabel}
-            </button>
+           <button
+             className="btn btn-add"
+             onClick={onAction}
+            disabled={disabled}
+           >
+             {actionLabel}
+          </button>
           )}
 
           {/* Watchlist card -- show toggle + remove buttons */}

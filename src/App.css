@@ -54,6 +54,31 @@
   color: var(--text-muted);
 }
 
+
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.spinner {
+  width: 35px;
+  height: 35px;
+  border: 4px solid #444;
+  border-top: 4px solid #6c63ff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Status and error messages */
 .status-message {
   text-align: center;
@@ -101,6 +126,15 @@
   font-size: 1rem;
 }
 
+.sort-section {
+  margin: 15px 0;
+}
+
+.sort-section select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
 /* Filter Buttons */
 .filter-buttons {
   display: flex;
