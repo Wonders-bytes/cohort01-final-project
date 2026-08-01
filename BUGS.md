@@ -71,32 +71,25 @@
 * **Why:** This improves usability and makes it easier to organize saved movies.
 * **How I implemented it:** Added a new `sortBy` state and sorted the filtered watchlist before rendering it.
 
----
-
 # AI Usage
 
 I used ChatGPT during this project to:
 
-* Understand React concepts and debugging techniques.
+* Understand debugging techniques.
 * Help identify bugs in the starter code.
 * Explain why the bugs happened.
 * Verify possible fixes before applying them.
-* Help write this documentation.
 
 I tested every suggested fix myself before keeping it in the project. Some suggestions needed adjustments after testing, especially around localStorage and JSX structure, and I verified the final solution by running and testing the application.
 
-## AI Usage
-
 ### What I used it for
-I used ChatGPT to help me understand the existing React code, debug errors, explain concepts, and suggest possible fixes for bugs. I also used it for guidance with Git, GitHub, and deploying the project to Vercel.
+I used ChatGPT to help me understand the existing React code, debug errors, explain concepts, and suggest possible fixes for bugs.
 
 ### What prompts I gave it
 Some examples of prompts I used were:
 - "Why does my watchlist disappear after refreshing the page?"
 - "Help me fix this React JSX parse error."
 - "How do I save my watchlist to localStorage?"
-- "How do I push my project to my own GitHub repository?"
-- "How do I deploy my React app to Vercel?"
 
 ### What it got right
 ChatGPT correctly identified several issues, including:
